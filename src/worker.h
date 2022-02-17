@@ -6,9 +6,9 @@
 #include "action.h"
 
 enum WorkerStatus{
-    UNAVAILABLE = 0,    //The worker has not been initialized or has been destroyed.
-    IDLE = 1,           //The worker is idling.
-    BUSY = 2            //The worker is busy.
+    UNAVAILABLE = 0,    // The worker has not been initialized or has been destroyed.
+    IDLE = 1,           // The worker is idling.
+    BUSY = 2            // The worker is busy.
 };
 
 template <class Record ,class Connector>

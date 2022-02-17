@@ -1,11 +1,13 @@
 #pragma once
 #include "config.h"
 #include "worker_pool.h"
+#include "collector.h"
 
 template <class Record ,class Connector>
 class Client{
     Config<Connector> config;
     WorkerPool<Record, Connector> workerPool;
+    Collector<Record> collector;
 
 public:
     Client(Config<Connector> config);
@@ -15,13 +17,18 @@ public:
 template <class Record ,class Connector>
 Client<Record, Connector>::Client(Config<Connector> _config):
     config(_config),
-    workerPool(WorkerPool<Record, Connector>(config.numWorkers))
+    workerPool(WorkerPool<Record, Connector>(config.numWorkers)),
+    collector(Collector<Record>(10))  // Suppose the number of shards is 10.
 {
 }
 
 template <class Record ,class Connector>
 void Client<Record, Connector>::put(Record& record){
-    std::shared_ptr<Action<Record, Connector>> action(new Action<Record, Connector>(config.connector));
-    action->addRecord(record);
-    workerPool.apply(action);
+    ShardCollector<Record>& shardCollector = collector.apply(record);
+    if (shardCollector.shouldFlush()) {
+        std::vector<Record> records = shardCollector.flush();
+        std::shared_ptr<Action<Record, Connector>> action(new Action<Record, Connector>(config.connector));
+        action->setRecords(std::move(records));
+        workerPool.apply(action);
+    }
 }

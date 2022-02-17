@@ -14,8 +14,9 @@ public:
 };
 
 template <class Record ,class Connector>
-WorkerPool<Record, Connector>::WorkerPool(size_t _numWorkers){
-    numWorkers = _numWorkers;
+WorkerPool<Record, Connector>::WorkerPool(size_t _numWorkers):
+    numWorkers(_numWorkers)
+{
     workers.resize(numWorkers);
     for (size_t i = 0;i < numWorkers;i++){
         workers[i] = std::unique_ptr<Worker<Record, Connector>>(new Worker<Record, Connector>(i));

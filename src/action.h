@@ -8,7 +8,7 @@ class Action{
 
 public:
     Action(Connector& _connector);
-    void addRecord(Record& record);
+    void setRecords(std::vector<Record>&& _records);
     void exec();
 };
 
@@ -19,8 +19,8 @@ Action<Record, Connector>::Action(Connector& _connector):
 }
 
 template <class Record ,class Connector>
-void Action<Record, Connector>::addRecord(Record& record){
-    records.push_back(record);
+void Action<Record, Connector>::setRecords(std::vector<Record>&& _records){
+    records = _records;
 }
 
 template <class Record ,class Connector>
