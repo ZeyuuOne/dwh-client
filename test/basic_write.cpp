@@ -6,6 +6,9 @@ Config<DorisConnector<DorisRecord>> getConfig(){
     Config<DorisConnector<DorisRecord>> config;
 
     config.numWorkers = 4;
+
+    config.collectorConfig.targetNumRecords = 10;
+
     config.connector.ip = "172.17.0.3";
     config.connector.port = "8030";
     config.connector.user = "root";
@@ -24,6 +27,7 @@ int main(){
         for (int j = 0;j < 6;j++){
             record.values.push_back(std::to_string(i));
         }
+        record.numShards = 10;
         client.put(record);
     }
     

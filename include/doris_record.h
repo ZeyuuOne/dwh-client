@@ -7,6 +7,8 @@ public:
     std::string database;
     std::string table;
     std::vector<std::string> values;
+    size_t numShards;  // TODO: Should be get from the table schema.
+
     std::string getTableIdentifier();
     size_t hash(size_t upperBound);
 };

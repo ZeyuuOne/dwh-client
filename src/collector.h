@@ -1,4 +1,5 @@
 #pragma once
+#include "config.h"
 #include "unordered_map"
 #include "vector"
 
@@ -8,7 +9,7 @@ class ShardCollector{
 
 public:
     void apply(Record record);
-    bool shouldFlush();
+    bool shouldFlush(CollectorConfig& config);
     std::vector<Record>&& flush();
 };
 
@@ -25,11 +26,9 @@ public:
 
 template <class Record>
 class Collector{
-    size_t numShards;  // Suppose every table has the same number of shards.
     std::unordered_map<std::string, TableCollector<Record>> tableCollectors;
     
 public:
-    Collector(size_t numShards);
     ShardCollector<Record>& apply(Record record);
 };
 
@@ -39,8 +38,8 @@ void ShardCollector<Record>::apply(Record record){
 }
 
 template <class Record>
-bool ShardCollector<Record>::shouldFlush(){
-    if (records.size() == 10) return true;  // Suppose the upper limit of number of records is 10.
+bool ShardCollector<Record>::shouldFlush(CollectorConfig& config){
+    if (records.size() == config.targetNumRecords) return true;
     return false;
 }
 
@@ -70,15 +69,9 @@ ShardCollector<Record>& TableCollector<Record>::apply(Record record){
 }
 
 template <class Record>
-Collector<Record>::Collector(size_t _numShards):
-    numShards(_numShards)
-{
-}
-
-template <class Record>
 ShardCollector<Record>& Collector<Record>::apply(Record record){
     if (tableCollectors.find(record.getTableIdentifier()) == tableCollectors.end()) {
-        tableCollectors[record.getTableIdentifier()] = TableCollector<Record>(numShards);
+        tableCollectors[record.getTableIdentifier()] = TableCollector<Record>(record.numShards);
     }
     return tableCollectors[record.getTableIdentifier()].apply(record);
 }
