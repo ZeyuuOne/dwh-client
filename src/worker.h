@@ -4,6 +4,7 @@
 #include "condition_variable"
 #include "memory"
 #include "action.h"
+#include "spdlog/spdlog.h"
 
 enum WorkerStatus{
     UNAVAILABLE = 0,    // The worker has not been initialized or has been destroyed.
@@ -35,6 +36,7 @@ Worker<Record, Connector>::Worker(size_t _id){
     status = IDLE;
     action = nullptr;
     thd = std::thread(&Worker::run, this);
+    spdlog::info("Worker {} created.", id);
 }
 
 template <class Record ,class Connector>
@@ -47,6 +49,7 @@ Worker<Record, Connector>::~Worker(){
     cv.notify_all();
     lck.unlock();
     thd.join();
+    spdlog::info("Worker {} closed.", id);
 }
 
 template <class Record ,class Connector>
@@ -70,6 +73,7 @@ bool Worker<Record, Connector>::tryApply(std::shared_ptr<Action<Record, Connecto
         action = _action;
         status = BUSY;
         cv.notify_all();
+        spdlog::info("Worker {} applied action.", id);
         return true;
     }
     return false;

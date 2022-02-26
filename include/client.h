@@ -2,6 +2,8 @@
 #include "config.h"
 #include "worker_pool.h"
 #include "collector.h"
+#include "spdlog/spdlog.h"
+#include "exception.h"
 
 template <class Record ,class Connector>
 class Client{
@@ -11,14 +13,24 @@ class Client{
 
 public:
     Client(Config<Connector> config);
+    ~Client();
     void put(Record& record);
 };
 
 template <class Record ,class Connector>
 Client<Record, Connector>::Client(Config<Connector> _config):
-    config(_config),
-    workerPool(WorkerPool<Record, Connector>(config.numWorkers))
+    config(_config)
 {
+    if (!config.valid()){
+        throw new ConfigNotValidException;
+    }
+    workerPool = WorkerPool<Record, Connector>(config.numWorkers);
+    spdlog::info("DWH Client running...");
+}
+
+template <class Record ,class Connector>
+Client<Record, Connector>::~Client(){
+    spdlog::info("DWH Client closing...");
 }
 
 template <class Record ,class Connector>

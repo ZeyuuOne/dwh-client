@@ -1,9 +1,10 @@
 #pragma once
 #include "cstddef"
+#include "spdlog/spdlog.h"
 
 class CollectorConfig{
 public:
-    size_t targetNumRecords;
+    int32_t targetNumRecords;
 
     CollectorConfig();
     bool valid();
@@ -12,7 +13,7 @@ public:
 template<class Connector>
 class Config{
 public:
-    size_t numWorkers;
+    int32_t numWorkers;
     CollectorConfig collectorConfig;
     Connector connector;
 
@@ -26,8 +27,12 @@ CollectorConfig::CollectorConfig():
 }
 
 bool CollectorConfig::valid(){
-    if (targetNumRecords <= 0) return false;
-    return true;
+    bool valid = true;
+    if (targetNumRecords <= 0) {
+        spdlog::error("Target number of records in config should be positive, which is currently {}.", targetNumRecords);
+        valid = false;
+    }
+    return valid;
 }
 
 template<class Connector>
@@ -38,7 +43,13 @@ Config<Connector>::Config():
 
 template<class Connector>
 bool Config<Connector>::valid(){
-    if (numWorkers <= 0) return false;
-    if (!collectorConfig.valid()) return false;
-    return true;
+    bool valid = true;
+    if (numWorkers <= 0) {
+        spdlog::error("Number of workers in config should be positive, which is currently {}.", numWorkers);
+        valid = false;
+    }
+    if (!collectorConfig.valid()) {
+        valid = false;
+    }
+    return valid;
 }

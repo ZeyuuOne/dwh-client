@@ -8,10 +8,17 @@ class WorkerPool{
     std::vector<std::unique_ptr<Worker<Record, Connector>>> workers;
 
 public:
+    WorkerPool();
     WorkerPool(size_t _numWorkers);
     void apply(std::shared_ptr<Action<Record, Connector>> action);
     bool tryApply(std::shared_ptr<Action<Record, Connector>> action);
 };
+
+template <class Record ,class Connector>
+WorkerPool<Record, Connector>::WorkerPool():
+    numWorkers(-1)
+{
+}
 
 template <class Record ,class Connector>
 WorkerPool<Record, Connector>::WorkerPool(size_t _numWorkers):
