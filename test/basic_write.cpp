@@ -7,14 +7,14 @@ Config<DorisConnector<DorisRecord>> getConfig(){
 
     config.numWorkers = 4;
 
-    config.collectorConfig.targetNumRecords = 10;
+    config.collectorConfig.targetNumRecords = 15;
 
     config.connector.ip = "172.17.0.3";
     config.connector.port = "8030";
     config.connector.user = "root";
     config.connector.password = "password";
 
-    return config;
+    return std::move(config);
 }
 
 int main(){

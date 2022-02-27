@@ -15,6 +15,9 @@ public:
     Client(Config<Connector> config);
     ~Client();
     void put(Record& record);
+
+private:
+    void deliver(std::vector<Record>&& records);
 };
 
 template <class Record ,class Connector>
@@ -31,6 +34,12 @@ Client<Record, Connector>::Client(Config<Connector> _config):
 template <class Record ,class Connector>
 Client<Record, Connector>::~Client(){
     spdlog::info("DWH Client closing...");
+    std::vector<std::vector<std::vector<Record>>> collectorRecords = collector.flush();
+    for (auto i = collectorRecords.begin(); i != collectorRecords.end(); i++){
+        for (auto j = i->begin(); j != i->end(); j++){
+            deliver(std::move(*j));
+        }
+    }
 }
 
 template <class Record ,class Connector>
@@ -38,8 +47,14 @@ void Client<Record, Connector>::put(Record& record){
     ShardCollector<Record>& shardCollector = collector.apply(record);
     if (shardCollector.shouldFlush(config.collectorConfig)) {
         std::vector<Record> records = shardCollector.flush();
-        std::shared_ptr<Action<Record, Connector>> action(new Action<Record, Connector>(config.connector));
-        action->setRecords(std::move(records));
-        workerPool.apply(action);
+        deliver(std::move(records));
     }
+}
+
+template <class Record ,class Connector>
+void Client<Record, Connector>::deliver(std::vector<Record>&& records){
+    if (records.empty()) return;
+    std::shared_ptr<Action<Record, Connector>> action(new Action<Record, Connector>(config.connector));
+    action->setRecords(std::move(records));
+    workerPool.apply(action);
 }

@@ -76,6 +76,9 @@
         "xtree": "cpp",
         "xutility": "cpp",
         "cstdarg": "cpp",
-        "span": "cpp"
+        "span": "cpp",
+        "codecvt": "cpp",
+        "filesystem": "cpp",
+        "valarray": "cpp"
     }
 }

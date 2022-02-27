@@ -2,6 +2,8 @@
 #include "vector"
 #include "random"
 #include "cpr/cpr.h"
+#include "spdlog/spdlog.h"
+#include "nlohmann/json.hpp"
 
 template<class Record>
 class DorisConnector{
@@ -33,7 +35,7 @@ void DorisConnector<Record>::exec(std::vector<Record> records){
     std::string url("http://" + ip + ":" + port + "/api/" + database + "/" + table + "/_stream_load");
     std::string label(std::to_string(time(0)) + std::to_string(rand()));
 
-    cpr::Response r = cpr::Put(cpr::Url{url},
+    cpr::Response response = cpr::Put(cpr::Url{url},
         cpr::Body{body},
         cpr::Authentication{user, password},
         cpr::Redirect{-1,true,true,cpr::PostRedirectFlags::POST_ALL},
@@ -43,4 +45,9 @@ void DorisConnector<Record>::exec(std::vector<Record> records){
             {"expect", "100-continue"}
         }
     );
+
+    auto json = nlohmann::json::parse(response.text);
+    if (json["Status"] != "Success"){
+        spdlog::error(response.text);
+    }
 }

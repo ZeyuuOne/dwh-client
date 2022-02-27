@@ -25,7 +25,7 @@ WorkerPool<Record, Connector>::WorkerPool(size_t _numWorkers):
     numWorkers(_numWorkers)
 {
     workers.resize(numWorkers);
-    for (size_t i = 0;i < numWorkers;i++){
+    for (size_t i = 0; i < numWorkers; i++){
         workers[i] = std::unique_ptr<Worker<Record, Connector>>(new Worker<Record, Connector>(i));
     }
 }
@@ -38,7 +38,7 @@ void WorkerPool<Record, Connector>::apply(std::shared_ptr<Action<Record, Connect
 
 template <class Record ,class Connector>
 bool WorkerPool<Record, Connector>::tryApply(std::shared_ptr<Action<Record, Connector>> action){
-    for (auto i = workers.begin();i != workers.end();i++){
+    for (auto i = workers.begin(); i != workers.end(); i++){
         if ((*i)->tryApply(action)){
             return true;
         }
