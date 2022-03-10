@@ -12,12 +12,12 @@ class Collector{
     std::unordered_set<std::shared_ptr<ShardCollector<Record>>> shardCollectors;
     
 public:
-    ShardCollector<Record>& apply(Record record);
+    ShardCollector<Record>& match(Record record);
     std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& getShardCollectors();
 };
 
 template <class Record>
-ShardCollector<Record>& Collector<Record>::apply(Record record){
+ShardCollector<Record>& Collector<Record>::match(Record record){
     if (tableCollectors.find(record.getTableIdentifier()) == tableCollectors.end()) {
         tableCollectors.insert({record.getTableIdentifier(), TableCollector<Record>(record.numShards)});
         std::vector<std::shared_ptr<ShardCollector<Record>>>& shardCollectorsInTable = tableCollectors[record.getTableIdentifier()].getShardCollectors();
@@ -25,7 +25,7 @@ ShardCollector<Record>& Collector<Record>::apply(Record record){
             shardCollectors.insert(shardCollectorsInTable[i]);
         }
     }
-    return tableCollectors[record.getTableIdentifier()].apply(record);
+    return tableCollectors[record.getTableIdentifier()].match(record);
 }
 
 template <class Record>

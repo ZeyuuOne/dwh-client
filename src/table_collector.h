@@ -13,7 +13,7 @@ public:
     TableCollector();
     TableCollector(size_t _numShards);
     std::vector<std::shared_ptr<ShardCollector<Record>>>& getShardCollectors();
-    ShardCollector<Record>& apply(Record record);
+    ShardCollector<Record>& match(Record record);
 };
 
 
@@ -39,8 +39,6 @@ std::vector<std::shared_ptr<ShardCollector<Record>>>& TableCollector<Record>::ge
 }
 
 template <class Record>
-ShardCollector<Record>& TableCollector<Record>::apply(Record record){
-    ShardCollector<Record>& shardCollector = *(shardCollectors[record.hash(numShards)]);
-    shardCollector.apply(record);
-    return shardCollector;
+ShardCollector<Record>& TableCollector<Record>::match(Record record){
+    return *(shardCollectors[record.hash(numShards)]);
 }
