@@ -79,6 +79,7 @@
         "span": "cpp",
         "codecvt": "cpp",
         "filesystem": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "unordered_set": "cpp"
     }
 }
