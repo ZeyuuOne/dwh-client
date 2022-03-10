@@ -15,6 +15,7 @@ public:
     Client(Config<Connector> config);
     ~Client();
     void put(Record& record);
+    void flush();
 
 private:
     void deliver(std::vector<Record>&& records);
@@ -34,12 +35,7 @@ Client<Record, Connector>::Client(Config<Connector> _config):
 template <class Record ,class Connector>
 Client<Record, Connector>::~Client(){
     spdlog::info("DWH Client closing...");
-    std::vector<std::vector<std::vector<Record>>> collectorRecords = collector.flush();
-    for (auto i = collectorRecords.begin(); i != collectorRecords.end(); i++){
-        for (auto j = i->begin(); j != i->end(); j++){
-            deliver(std::move(*j));
-        }
-    }
+    flush();
 }
 
 template <class Record ,class Connector>
@@ -47,6 +43,15 @@ void Client<Record, Connector>::put(Record& record){
     ShardCollector<Record>& shardCollector = collector.apply(record);
     if (shardCollector.shouldFlush(config.collectorConfig)) {
         std::vector<Record> records = shardCollector.flush();
+        deliver(std::move(records));
+    }
+}
+
+template <class Record ,class Connector>
+void Client<Record, Connector>::flush(){
+    std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& shardCollectors = collector.getShardCollectors();
+    for (auto i = shardCollectors.begin(); i != shardCollectors.end(); i++){
+        std::vector<Record> records = (*i)->flush();
         deliver(std::move(records));
     }
 }

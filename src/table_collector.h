@@ -14,7 +14,6 @@ public:
     TableCollector(size_t _numShards);
     std::vector<std::shared_ptr<ShardCollector<Record>>>& getShardCollectors();
     ShardCollector<Record>& apply(Record record);
-    std::vector<std::vector<Record>> flush();
 };
 
 
@@ -44,13 +43,4 @@ ShardCollector<Record>& TableCollector<Record>::apply(Record record){
     ShardCollector<Record>& shardCollector = *(shardCollectors[record.hash(numShards)]);
     shardCollector.apply(record);
     return shardCollector;
-}
-
-template <class Record>
-std::vector<std::vector<Record>> TableCollector<Record>::flush(){
-    std::vector<std::vector<Record>> tableRecords(numShards);
-    for (size_t i = 0; i < numShards; i++){
-        tableRecords[i] = shardCollectors[i]->flush();
-    }
-    return std::move(tableRecords);
 }

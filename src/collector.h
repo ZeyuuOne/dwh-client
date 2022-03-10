@@ -13,7 +13,7 @@ class Collector{
     
 public:
     ShardCollector<Record>& apply(Record record);
-    std::vector<std::vector<std::vector<Record>>> flush();
+    std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& getShardCollectors();
 };
 
 template <class Record>
@@ -29,12 +29,6 @@ ShardCollector<Record>& Collector<Record>::apply(Record record){
 }
 
 template <class Record>
-std::vector<std::vector<std::vector<Record>>> Collector<Record>::flush(){
-    std::vector<std::vector<std::vector<Record>>> collectorRecords(tableCollectors.size());
-    size_t i = 0;
-    for (auto itr = tableCollectors.begin(); itr != tableCollectors.end(); itr++){
-        collectorRecords[i] = itr->second.flush();
-        i++;
-    }
-    return std::move(collectorRecords);
+std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& Collector<Record>::getShardCollectors(){
+    return shardCollectors;
 }
