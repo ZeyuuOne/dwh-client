@@ -83,6 +83,7 @@ void Client<Record, Connector>::watcherRun(){
         for (auto i = shardCollectors.begin(); i != shardCollectors.end(); i++){
             if (!(*i)->shouldFlush(config.collectorConfig)) continue;
             std::unique_lock <std::mutex> lck((*i)->mtx, std::try_to_lock);
+            if (!lck) continue;
             tryFlushShardCollector(**i);
         }
         if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - metrics.lastLoggingTime).count() >= config.metricsLoggingIntervalMs){
