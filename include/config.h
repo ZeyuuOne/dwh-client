@@ -16,6 +16,7 @@ class Config{
 public:
     int32_t numWorkers;
     int32_t watcherWakeUpIntervalMs;
+    int32_t metricsLoggingIntervalMs;
     CollectorConfig collectorConfig;
     Connector connector;
 
@@ -45,7 +46,8 @@ bool CollectorConfig::valid(){
 template<class Connector>
 Config<Connector>::Config():
     numWorkers(1),
-    watcherWakeUpIntervalMs(1000)
+    watcherWakeUpIntervalMs(1000),
+    metricsLoggingIntervalMs(10000)
 {
 }
 
@@ -58,6 +60,10 @@ bool Config<Connector>::valid(){
     }
     if (watcherWakeUpIntervalMs <= 0) {
         spdlog::error("Watcher wake up interval in config should be positive, which is currently {}.", numWorkers);
+        valid = false;
+    }
+    if (metricsLoggingIntervalMs <= 0) {
+        spdlog::error("Metrics logging interval in config should be positive, which is currently {}.", metricsLoggingIntervalMs);
         valid = false;
     }
     if (!collectorConfig.valid()) {

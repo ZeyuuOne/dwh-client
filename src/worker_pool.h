@@ -10,6 +10,7 @@ class WorkerPool{
 public:
     WorkerPool();
     WorkerPool(size_t _numWorkers);
+    std::vector<std::shared_ptr<Metrics>> getWorkerMetrics();
     void apply(std::shared_ptr<Action<Record, Connector>> action);
     bool tryApply(std::shared_ptr<Action<Record, Connector>> action);
 };
@@ -28,6 +29,15 @@ WorkerPool<Record, Connector>::WorkerPool(size_t _numWorkers):
     for (size_t i = 0; i < numWorkers; i++){
         workers[i] = std::unique_ptr<Worker<Record, Connector>>(new Worker<Record, Connector>(i));
     }
+}
+
+template <class Record ,class Connector>
+std::vector<std::shared_ptr<Metrics>> WorkerPool<Record, Connector>::getWorkerMetrics(){
+    std::vector<std::shared_ptr<Metrics>> workerMetrics(numWorkers);
+    for (size_t i = 0; i < numWorkers; i++){
+        workerMetrics[i] = workers[i]->getMetrics();
+    }
+    return std::move(workerMetrics);
 }
 
 template <class Record ,class Connector>

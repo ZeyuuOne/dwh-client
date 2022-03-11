@@ -1,10 +1,11 @@
 #pragma once
 #include "config.h"
 #include "worker_pool.h"
-#include "chrono"
+#include "chrono"   
 #include "collector.h"
 #include "spdlog/spdlog.h"
 #include "exception.h"
+#include "metrics.h"
 
 enum class ClientStatus{
     UNAVAILABLE = 0,    // The client has not been initialized or has been destroyed.
@@ -17,6 +18,7 @@ class Client{
     Config<Connector> config;
     WorkerPool<Record, Connector> workerPool;
     Collector<Record> collector;
+    Metrics metrics;
     std::thread watcher;
 
 public:
@@ -39,6 +41,7 @@ Client<Record, Connector>::Client(Config<Connector> _config):
         throw new ConfigNotValidException;
     }
     workerPool = WorkerPool<Record, Connector>(config.numWorkers);
+    metrics.affliatedMetrics = workerPool.getWorkerMetrics();
     watcher = std::thread(&Client::watcherRun, this);
     status = ClientStatus::RUNNING;
     spdlog::info("DWH Client running...");
@@ -47,6 +50,8 @@ Client<Record, Connector>::Client(Config<Connector> _config):
 template <class Record ,class Connector>
 Client<Record, Connector>::~Client(){
     spdlog::info("DWH Client closing...");
+    metrics.gatherAffliatedMetrics();
+    metrics.log();
     status = ClientStatus::UNAVAILABLE;
     flush();
     watcher.join();
@@ -80,6 +85,11 @@ void Client<Record, Connector>::watcherRun(){
             std::unique_lock <std::mutex> lck((*i)->mtx, std::try_to_lock);
             tryFlushShardCollector(**i);
         }
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - metrics.lastLoggingTime).count() >= config.metricsLoggingIntervalMs){
+            metrics.gatherAffliatedMetrics();
+            metrics.log();
+            metrics.reset();
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(config.watcherWakeUpIntervalMs));
     }
 }
@@ -89,7 +99,9 @@ void Client<Record, Connector>::deliver(std::vector<Record>&& records){
     if (records.empty()) return;
     std::shared_ptr<Action<Record, Connector>> action(new Action<Record, Connector>(config.connector));
     action->setRecords(std::move(records));
+    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
     workerPool.apply(action);
+    metrics.deliverDelayMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count());
 }
 
 template <class Record ,class Connector>

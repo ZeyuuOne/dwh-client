@@ -7,6 +7,7 @@ Config<DorisConnector<DorisRecord>> getConfig(){
 
     config.numWorkers = 4;
     config.watcherWakeUpIntervalMs = 500;
+    config.metricsLoggingIntervalMs = 3000;
 
     config.collectorConfig.targetNumRecords = 10;
     config.collectorConfig.maxWaitingTimeMs = 2000;

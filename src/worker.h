@@ -4,6 +4,7 @@
 #include "condition_variable"
 #include "memory"
 #include "action.h"
+#include "metrics.h"
 #include "spdlog/spdlog.h"
 
 enum class WorkerStatus{
@@ -17,6 +18,7 @@ class Worker{
     size_t id;
     WorkerStatus status;
     std::shared_ptr<Action<Record, Connector>> action;
+    std::shared_ptr<Metrics> metrics;
     std::thread thd;
     std::mutex mtx;
     std::condition_variable cv;
@@ -24,6 +26,7 @@ class Worker{
 public:
     Worker(size_t _id);
     ~Worker();
+    std::shared_ptr<Metrics> getMetrics();
     void run();
     bool tryApply(std::shared_ptr<Action<Record, Connector>> _action);
     void exec();
@@ -35,6 +38,7 @@ Worker<Record, Connector>::Worker(size_t _id){
     id = _id;
     status = WorkerStatus::IDLE;
     action = nullptr;
+    metrics = std::shared_ptr<Metrics>(new Metrics);
     thd = std::thread(&Worker::run, this);
     spdlog::info("Worker {} created.", id);
 }
@@ -50,6 +54,11 @@ Worker<Record, Connector>::~Worker(){
     lck.unlock();
     thd.join();
     spdlog::info("Worker {} closed.", id);
+}
+
+template <class Record ,class Connector>
+std::shared_ptr<Metrics> Worker<Record, Connector>::getMetrics(){
+    return metrics;
 }
 
 template <class Record ,class Connector>
@@ -81,5 +90,9 @@ bool Worker<Record, Connector>::tryApply(std::shared_ptr<Action<Record, Connecto
 
 template <class Record ,class Connector>
 void Worker<Record, Connector>::exec(){
+    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
     action->exec();
+    metrics->actionExecTimeMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count());
+    metrics->numRequests.mark();
+    metrics->numRecords.mark(action->getNumRecords());
 }
