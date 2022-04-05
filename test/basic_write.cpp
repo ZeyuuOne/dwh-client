@@ -27,6 +27,7 @@ int main(){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
+        record.values.reserve(6);
         for (int j = 0; j < 6; j++){
             record.values.push_back(std::to_string(i));
         }
@@ -40,6 +41,7 @@ int main(){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
+        record.values.reserve(6);
         for (int j = 0; j < 6; j++){
             record.values.push_back(std::to_string(i));
         }

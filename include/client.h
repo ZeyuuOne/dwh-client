@@ -31,12 +31,13 @@ public:
 private:
     void watcherRun();
     std::future<ActionResult> deliver(std::vector<Record>&& records);
-    void tryFlushShardCollector(ShardCollector<Record>& shardCollector);
+    void flushShardCollectorIfShould(ShardCollector<Record>& shardCollector);
 };
 
 template <class Record ,class Connector>
 Client<Record, Connector>::Client(Config<Connector> _config):
-    config(_config)
+    config(_config),
+    collector(Collector<Record>(config.collectorConfig))
 {
     if (!config.valid()){
         throw new ConfigNotValidException;
@@ -70,7 +71,7 @@ void Client<Record, Connector>::put(Record& record){
     ShardCollector<Record>& shardCollector = collector.match(record);
     std::unique_lock<std::mutex> lck(shardCollector.mtx);
     shardCollector.apply(record);
-    tryFlushShardCollector(shardCollector);
+    flushShardCollectorIfShould(shardCollector);
 }
 
 template <class Record ,class Connector>
@@ -96,7 +97,7 @@ void Client<Record, Connector>::watcherRun(){
             if (!(*i)->shouldFlush(config.collectorConfig)) continue;
             std::unique_lock<std::mutex> lck((*i)->mtx, std::try_to_lock);
             if (!lck) continue;
-            tryFlushShardCollector(**i);
+            flushShardCollectorIfShould(**i);
         }
         if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - metrics.lastLoggingTime).count() >= config.metricsLoggingIntervalMs){
             metrics.gatherAffliatedMetrics();
@@ -120,7 +121,7 @@ std::future<ActionResult> Client<Record, Connector>::deliver(std::vector<Record>
 }
 
 template <class Record ,class Connector>
-void Client<Record, Connector>::tryFlushShardCollector(ShardCollector<Record>& shardCollector){
+void Client<Record, Connector>::flushShardCollectorIfShould(ShardCollector<Record>& shardCollector){
     if (shardCollector.shouldFlush(config.collectorConfig)) {
         std::vector<Record> records = shardCollector.flush();
         if (shardCollector.result.valid()){

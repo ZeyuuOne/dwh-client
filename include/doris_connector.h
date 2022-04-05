@@ -24,6 +24,7 @@ void DorisConnector<Record>::exec(std::vector<Record> records){
     std::string& table = records[0].table;
 
     std::string body;
+    body.reserve(records.size() * 10);
     for (auto i = records.begin();i != records.end(); i++){
         for (auto j = i->values.begin();j != i->values.end(); j++){
             if (j != i->values.begin()) body += ',';
