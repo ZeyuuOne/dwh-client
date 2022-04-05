@@ -27,7 +27,7 @@ void MetricsHistogram::reset(){
 }
 
 void MetricsHistogram::update(size_t n){
-    std::unique_lock <std::mutex> lck(mtx);
+    std::unique_lock<std::mutex> lck(mtx);
     total += n;
     count++;
     if (n < min) min = n;
@@ -35,7 +35,7 @@ void MetricsHistogram::update(size_t n){
 }
 
 void MetricsHistogram::gather(MetricsHistogram& another){
-    std::unique_lock <std::mutex> lck(another.mtx);
+    std::unique_lock<std::mutex> lck(another.mtx);
     total += another.total;
     count += another.count;
     if (another.min < min) min = another.min;

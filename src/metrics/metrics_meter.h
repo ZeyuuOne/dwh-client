@@ -22,17 +22,17 @@ void MetricsMeter::reset(){
 }
 
 void MetricsMeter::mark(){
-    std::unique_lock <std::mutex> lck(mtx);
+    std::unique_lock<std::mutex> lck(mtx);
     count++;
 }
 
 void MetricsMeter::mark(size_t n){
-    std::unique_lock <std::mutex> lck(mtx);
+    std::unique_lock<std::mutex> lck(mtx);
     count += n;
 }
 
 void MetricsMeter::gather(MetricsMeter& another){
-    std::unique_lock <std::mutex> lck(another.mtx);
+    std::unique_lock<std::mutex> lck(another.mtx);
     count += another.count;
     another.reset();
 }

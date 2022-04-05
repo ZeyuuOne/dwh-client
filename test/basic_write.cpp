@@ -27,7 +27,7 @@ int main(){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
-        for (int j = 0;j < 6;j++){
+        for (int j = 0; j < 6; j++){
             record.values.push_back(std::to_string(i));
         }
         record.numShards = 10;
@@ -36,11 +36,11 @@ int main(){
 
     std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
-    for (int i = 100;i < 104;i++){
+    for (int i = 100; i < 104; i++){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
-        for (int j = 0;j < 6;j++){
+        for (int j = 0; j < 6; j++){
             record.values.push_back(std::to_string(i));
         }
         record.numShards = 10;

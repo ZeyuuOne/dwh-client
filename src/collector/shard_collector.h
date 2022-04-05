@@ -3,6 +3,7 @@
 #include "unordered_map"
 #include "vector"
 #include "chrono"
+#include "action.h"
 
 template <class Record>
 class ShardCollector{
@@ -11,11 +12,18 @@ class ShardCollector{
 
 public:
     std::mutex mtx;
+    std::future<ActionResult> result;
 
+    ShardCollector();
     void apply(Record record);
     bool shouldFlush(CollectorConfig& config);
     std::vector<Record>&& flush();
 };
+
+template <class Record>
+ShardCollector<Record>::ShardCollector(){
+    lastFlushTime = std::chrono::high_resolution_clock::now();
+}
 
 template <class Record>
 void ShardCollector<Record>::apply(Record record){
@@ -25,6 +33,7 @@ void ShardCollector<Record>::apply(Record record){
 
 template <class Record>
 bool ShardCollector<Record>::shouldFlush(CollectorConfig& config){
+    if (records.empty()) return false;
     if (records.size() == config.targetNumRecords) return true;
     if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - lastFlushTime).count() >= config.maxWaitingTimeMs) return true;
     return false;

@@ -34,7 +34,7 @@ public:
 
 template <class Record ,class Connector>
 Worker<Record, Connector>::Worker(size_t _id){
-    std::unique_lock <std::mutex> lck(mtx);
+    std::unique_lock<std::mutex> lck(mtx);
     id = _id;
     status = WorkerStatus::IDLE;
     action = nullptr;
@@ -45,7 +45,7 @@ Worker<Record, Connector>::Worker(size_t _id){
 
 template <class Record ,class Connector>
 Worker<Record, Connector>::~Worker(){
-    std::unique_lock <std::mutex> lck(mtx);
+    std::unique_lock<std::mutex> lck(mtx);
     if (status == WorkerStatus::BUSY){
         exec();
     }
@@ -63,7 +63,7 @@ std::shared_ptr<Metrics> Worker<Record, Connector>::getMetrics(){
 
 template <class Record ,class Connector>
 void Worker<Record, Connector>::run(){
-    std::unique_lock <std::mutex> lck(mtx);
+    std::unique_lock<std::mutex> lck(mtx);
     while (status != WorkerStatus::UNAVAILABLE){
         while (status == WorkerStatus::IDLE){
             cv.wait(lck);

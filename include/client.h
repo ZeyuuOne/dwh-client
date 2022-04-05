@@ -6,6 +6,7 @@
 #include "spdlog/spdlog.h"
 #include "exception.h"
 #include "metrics/metrics.h"
+#include "future"
 
 enum class ClientStatus{
     UNAVAILABLE = 0,    // The client has not been initialized or has been destroyed.
@@ -29,7 +30,7 @@ public:
 
 private:
     void watcherRun();
-    void deliver(std::vector<Record>&& records);
+    std::future<ActionResult> deliver(std::vector<Record>&& records);
     void tryFlushShardCollector(ShardCollector<Record>& shardCollector);
 };
 
@@ -50,10 +51,16 @@ Client<Record, Connector>::Client(Config<Connector> _config):
 template <class Record ,class Connector>
 Client<Record, Connector>::~Client(){
     spdlog::info("DWH Client closing...");
-    metrics.gatherAffliatedMetrics();
-    metrics.log();
     status = ClientStatus::UNAVAILABLE;
     flush();
+    std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& shardCollectors = collector.getShardCollectors();
+    for (auto i = shardCollectors.begin(); i != shardCollectors.end(); i++){
+        if ((*i)->result.valid()){
+            (*i)->result.get();
+        }
+    }
+    metrics.gatherAffliatedMetrics();
+    metrics.log();
     watcher.join();
     spdlog::info("Watcher closed.");
 }
@@ -61,7 +68,7 @@ Client<Record, Connector>::~Client(){
 template <class Record ,class Connector>
 void Client<Record, Connector>::put(Record& record){
     ShardCollector<Record>& shardCollector = collector.match(record);
-    std::unique_lock <std::mutex> lck(shardCollector.mtx);
+    std::unique_lock<std::mutex> lck(shardCollector.mtx);
     shardCollector.apply(record);
     tryFlushShardCollector(shardCollector);
 }
@@ -71,7 +78,12 @@ void Client<Record, Connector>::flush(){
     std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& shardCollectors = collector.getShardCollectors();
     for (auto i = shardCollectors.begin(); i != shardCollectors.end(); i++){
         std::vector<Record> records = (*i)->flush();
-        deliver(std::move(records));
+        if (records.empty()) continue;
+        if ((*i)->result.valid()){
+            (*i)->result.get();
+        }
+        std::future<ActionResult> result = deliver(std::move(records));
+        (*i)->result = std::move(result);
     }
 }
 
@@ -82,7 +94,7 @@ void Client<Record, Connector>::watcherRun(){
         std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& shardCollectors = collector.getShardCollectors();
         for (auto i = shardCollectors.begin(); i != shardCollectors.end(); i++){
             if (!(*i)->shouldFlush(config.collectorConfig)) continue;
-            std::unique_lock <std::mutex> lck((*i)->mtx, std::try_to_lock);
+            std::unique_lock<std::mutex> lck((*i)->mtx, std::try_to_lock);
             if (!lck) continue;
             tryFlushShardCollector(**i);
         }
@@ -96,19 +108,25 @@ void Client<Record, Connector>::watcherRun(){
 }
 
 template <class Record ,class Connector>
-void Client<Record, Connector>::deliver(std::vector<Record>&& records){
-    if (records.empty()) return;
+std::future<ActionResult> Client<Record, Connector>::deliver(std::vector<Record>&& records){
     std::shared_ptr<Action<Record, Connector>> action(new Action<Record, Connector>(config.connector));
+    std::promise<ActionResult>& promise = action->getResultPromise();
+    std::future<ActionResult> future = promise.get_future();
     action->setRecords(std::move(records));
     std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
     workerPool.apply(action);
     metrics.deliverDelayMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count());
+    return std::move(future);
 }
 
 template <class Record ,class Connector>
 void Client<Record, Connector>::tryFlushShardCollector(ShardCollector<Record>& shardCollector){
     if (shardCollector.shouldFlush(config.collectorConfig)) {
         std::vector<Record> records = shardCollector.flush();
-        deliver(std::move(records));
+        if (shardCollector.result.valid()){
+            shardCollector.result.get();
+        }
+        std::future<ActionResult> result = deliver(std::move(records));
+        shardCollector.result = std::move(result);
     }
 }
