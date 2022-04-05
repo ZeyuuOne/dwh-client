@@ -4,7 +4,7 @@
 #include "condition_variable"
 #include "memory"
 #include "action.h"
-#include "metrics.h"
+#include "metrics/metrics.h"
 #include "spdlog/spdlog.h"
 
 enum class WorkerStatus{

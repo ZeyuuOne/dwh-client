@@ -3,8 +3,8 @@
 #include "unordered_map"
 #include "unordered_set"
 #include "vector"
-#include "table_collector.h"
-#include "shard_collector.h"
+#include "collector/table_collector.h"
+#include "collector/shard_collector.h"
 
 template <class Record>
 class Collector{

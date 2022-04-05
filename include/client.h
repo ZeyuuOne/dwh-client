@@ -2,10 +2,10 @@
 #include "config.h"
 #include "worker_pool.h"
 #include "chrono"   
-#include "collector.h"
+#include "collector/collector.h"
 #include "spdlog/spdlog.h"
 #include "exception.h"
-#include "metrics.h"
+#include "metrics/metrics.h"
 
 enum class ClientStatus{
     UNAVAILABLE = 0,    // The client has not been initialized or has been destroyed.

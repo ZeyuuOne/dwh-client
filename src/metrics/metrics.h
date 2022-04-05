@@ -1,6 +1,6 @@
 #pragma once
-#include "metrics_meter.h"
-#include "metrics_histogram.h"
+#include "metrics/metrics_meter.h"
+#include "metrics/metrics_histogram.h"
 #include "vector"
 #include "memory"
 #include "spdlog/spdlog.h"

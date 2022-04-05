@@ -2,7 +2,7 @@
 #include "config.h"
 #include "unordered_map"
 #include "vector"
-#include "shard_collector.h"
+#include "collector/shard_collector.h"
 
 template <class Record>
 class TableCollector{
