@@ -11,8 +11,8 @@ public:
     MetricsMeter numRecords;
     MetricsHistogram deliverDelayMs;
     MetricsHistogram actionExecTimeMs;
-    std::chrono::high_resolution_clock::time_point lastResetTime;
-    std::chrono::high_resolution_clock::time_point lastLoggingTime;
+    std::chrono::steady_clock::time_point lastResetTime;
+    std::chrono::steady_clock::time_point lastLoggingTime;
     std::vector<std::shared_ptr<Metrics>> affliatedMetrics;
 
     Metrics();
@@ -31,7 +31,7 @@ void Metrics::reset(){
     numRecords.reset();
     deliverDelayMs.reset();
     actionExecTimeMs.reset();
-    lastResetTime = std::chrono::high_resolution_clock::now();
+    lastResetTime = std::chrono::steady_clock::now();
     lastLoggingTime = lastResetTime;
 }
 
@@ -49,7 +49,7 @@ void Metrics::gatherAffliatedMetrics(){
 }
 
 void Metrics::log(){
-    lastLoggingTime = std::chrono::high_resolution_clock::now();
+    lastLoggingTime = std::chrono::steady_clock::now();
     size_t timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(lastLoggingTime - lastResetTime).count();
     spdlog::info("------------------------- Last {}ms -------------------------", timeMs);
     spdlog::info("Number of requests \tCNT: {}  \tCPS: {}  \t", numRequests.count, numRequests.count * 1000 / timeMs);

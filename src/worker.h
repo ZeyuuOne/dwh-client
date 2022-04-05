@@ -90,9 +90,9 @@ bool Worker<Record, Connector>::tryApply(std::shared_ptr<Action<Record, Connecto
 
 template <class Record ,class Connector>
 void Worker<Record, Connector>::exec(){
-    std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
+    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     action->exec();
-    metrics->actionExecTimeMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - startTime).count());
+    metrics->actionExecTimeMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     metrics->numRequests.mark();
     metrics->numRecords.mark(action->getNumRecords());
 }
