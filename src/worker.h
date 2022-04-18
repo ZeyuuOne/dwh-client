@@ -24,6 +24,7 @@ class Worker{
     std::mutex mtx;
     std::condition_variable cv;
     std::counting_semaphore<INT32_MAX>& availableWorkers;
+    std::chrono::steady_clock::time_point lastBusyTime;
 
 public:
     Worker(size_t _id, std::counting_semaphore<INT32_MAX>& _availableWorkers);
@@ -40,13 +41,18 @@ Worker<Record, Connector>::Worker(size_t _id, std::counting_semaphore<INT32_MAX>
 {
     std::unique_lock<std::mutex> lck(mtx);
     id = _id;
+    lastBusyTime = std::chrono::steady_clock::now();
     status = WorkerStatus::IDLE;
     action = nullptr;
     metrics = std::shared_ptr<Metrics>(new Metrics);
     metrics->registerMeter("numRequests", "Number of requests ");
     metrics->registerMeter("numRecords", "Number of records  ");
+    metrics->registerMeter("numTimeouts", "Number of timeouts ");
     metrics->registerHistogram("deliverDelayMs", "Deliver delay      ");
     metrics->registerHistogram("actionExecTimeMs", "Action execute time");
+    metrics->registerHistogram("workerIdleTimeMs", "Worker idle time   ");
+    metrics->registerHistogram("acquireSemaphoreDelayMs", "Wait 4 worker delay");
+    metrics->registerHistogram("waitForFutureDelayMs", "Wait 4 future delay");
     thd = std::thread(&Worker::run, this);
     spdlog::info("Worker {} created.", id);
 }
@@ -78,7 +84,9 @@ void Worker<Record, Connector>::run(){
             cv.wait(lck);
         }
         if (status == WorkerStatus::BUSY) {
+            metrics->getHistogram("workerIdleTimeMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastBusyTime).count());
             exec();
+            lastBusyTime = std::chrono::steady_clock::now();
             status = WorkerStatus::IDLE;
         }
     }

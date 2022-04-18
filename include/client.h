@@ -46,8 +46,12 @@ Client<Record, Connector>::Client(Config<Connector> _config):
     }
     metrics.registerMeter("numRequests", "Number of requests ");
     metrics.registerMeter("numRecords", "Number of records  ");
-    metrics.registerHistogram("deliverDelayMs", "Deliver delay      ");
+    metrics.registerMeter("numTimeouts", "Number of timeouts ");
+    metrics.registerHistogram("actionApplyDelayMs", "Action apply delay ");
     metrics.registerHistogram("actionExecTimeMs", "Action execute time");
+    metrics.registerHistogram("workerIdleTimeMs", "Worker idle time   ");
+    metrics.registerHistogram("acquireSemaphoreDelayMs", "Wait 4 worker delay");
+    metrics.registerHistogram("waitForFutureDelayMs", "Wait 4 future delay");
     metrics.setAffliatedMetrics(workerPool.getWorkerMetrics());
     watcher = std::thread(&Client::watcherRun, this);
     status = ClientStatus::RUNNING;
@@ -121,18 +125,22 @@ std::future<ActionResult> Client<Record, Connector>::deliver(std::vector<Record>
     action->setRecords(std::move(records));
     std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     workerPool.apply(action);
-    metrics.getHistogram("deliverDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
+    metrics.getHistogram("actionApplyDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     return std::move(future);
 }
 
 template <class Record ,class Connector>
 void Client<Record, Connector>::flushShardCollectorIfReachTarget(ShardCollector<Record>& shardCollector){
     if (!shardCollector.reachTarget()) return;
+    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     workerPool.availableWorkers.acquire();
+    metrics.getHistogram("acquireSemaphoreDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     std::vector<Record> records = shardCollector.flush();
+    startTime = std::chrono::steady_clock::now();
     if (shardCollector.result.valid()){
         shardCollector.result.wait();
     }
+    metrics.getHistogram("waitForFutureDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     std::future<ActionResult> result = deliver(std::move(records));
     shardCollector.result = std::move(result);
 }
@@ -147,4 +155,5 @@ void Client<Record, Connector>::tryFlushShardCollectorIfTimeOut(ShardCollector<R
     std::vector<Record> records = shardCollector.flush();
     std::future<ActionResult> result = deliver(std::move(records));
     shardCollector.result = std::move(result);
+    metrics.getMeter("numTimeouts").mark();
 }
