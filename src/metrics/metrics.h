@@ -1,4 +1,6 @@
 #pragma once
+#include "unordered_map"
+#include "string"
 #include "metrics/metrics_meter.h"
 #include "metrics/metrics_histogram.h"
 #include "vector"
@@ -6,17 +8,22 @@
 #include "spdlog/spdlog.h"
 
 class Metrics{
-public:
-    MetricsMeter numRequests;
-    MetricsMeter numRecords;
-    MetricsHistogram deliverDelayMs;
-    MetricsHistogram actionExecTimeMs;
+private:
+    std::unordered_map<std::string, MetricsMeter> meters;
+    std::unordered_map<std::string, MetricsHistogram> histograms;
     std::chrono::steady_clock::time_point lastResetTime;
     std::chrono::steady_clock::time_point lastLoggingTime;
     std::vector<std::shared_ptr<Metrics>> affliatedMetrics;
 
+public:
     Metrics();
     void reset();
+    void registerMeter(std::string name, std::string displayName);
+    void registerHistogram(std::string name, std::string displayName);
+    MetricsMeter& getMeter(std::string name);
+    MetricsHistogram& getHistogram(std::string name);
+    void setAffliatedMetrics(std::vector<std::shared_ptr<Metrics>> _affliatedMetrics);
+    size_t getWaitingTimeMs();
     void gather(Metrics& another);
     void gatherAffliatedMetrics();
     void log();
@@ -27,19 +34,47 @@ Metrics::Metrics(){
 }
 
 void Metrics::reset(){
-    numRequests.reset();
-    numRecords.reset();
-    deliverDelayMs.reset();
-    actionExecTimeMs.reset();
+    for (auto i = meters.begin(); i != meters.end(); i++){
+        i->second.reset();
+    }
+    for (auto i = histograms.begin(); i != histograms.end(); i++){
+        i->second.reset();
+    }
     lastResetTime = std::chrono::steady_clock::now();
     lastLoggingTime = lastResetTime;
 }
 
+void Metrics::registerMeter(std::string name, std::string displayName){
+    meters.insert({name, MetricsMeter(displayName)});
+}
+
+void Metrics::registerHistogram(std::string name, std::string displayName){
+    histograms.insert({name, MetricsHistogram(displayName)});
+}
+ 
+MetricsMeter& Metrics::getMeter(std::string name){
+    return meters[name];
+}
+
+MetricsHistogram& Metrics::getHistogram(std::string name){
+    return histograms[name];
+}
+
+void Metrics::setAffliatedMetrics(std::vector<std::shared_ptr<Metrics>> _affliatedMetrics){
+    affliatedMetrics = _affliatedMetrics;
+}
+
+size_t Metrics::getWaitingTimeMs(){
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - lastLoggingTime).count();
+}
+
 void Metrics::gather(Metrics& another){
-    numRequests.gather(another.numRequests);
-    numRecords.gather(another.numRecords);
-    deliverDelayMs.gather(another.deliverDelayMs);
-    actionExecTimeMs.gather(another.actionExecTimeMs);
+    for (auto i = meters.begin(); i != meters.end(); i++){
+        i->second.gather(another.getMeter(i->first));
+    }
+    for (auto i = histograms.begin(); i != histograms.end(); i++){
+        i->second.gather(another.getHistogram(i->first));
+    }
 }
 
 void Metrics::gatherAffliatedMetrics(){
@@ -52,12 +87,10 @@ void Metrics::log(){
     lastLoggingTime = std::chrono::steady_clock::now();
     size_t timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(lastLoggingTime - lastResetTime).count();
     spdlog::info("------------------------- Last {}ms -------------------------", timeMs);
-    spdlog::info("Number of requests \tCNT: {}  \tCPS: {}  \t", numRequests.count, numRequests.count * 1000 / timeMs);
-    spdlog::info("Number of records  \tCNT: {}  \tCPS: {}  \t", numRecords.count, numRecords.count * 1000 / timeMs);
-    if (deliverDelayMs.count != 0){
-        spdlog::info("Deliver delay      \tAVR: {}  \tMIN: {}  \tMAX: {}  \t", deliverDelayMs.total/deliverDelayMs.count, deliverDelayMs.min, deliverDelayMs.max);
+    for (auto i = meters.begin(); i != meters.end(); i++){
+        i->second.log(timeMs);
     }
-    if (actionExecTimeMs.count != 0){
-        spdlog::info("Action execute time\tAVR: {}  \tMIN: {}  \tMAX: {}  \t", actionExecTimeMs.total/actionExecTimeMs.count, actionExecTimeMs.min, actionExecTimeMs.max);
+    for (auto i = histograms.begin(); i != histograms.end(); i++){
+        i->second.log();
     }
 }

@@ -43,6 +43,10 @@ Worker<Record, Connector>::Worker(size_t _id, std::counting_semaphore<INT32_MAX>
     status = WorkerStatus::IDLE;
     action = nullptr;
     metrics = std::shared_ptr<Metrics>(new Metrics);
+    metrics->registerMeter("numRequests", "Number of requests ");
+    metrics->registerMeter("numRecords", "Number of records  ");
+    metrics->registerHistogram("deliverDelayMs", "Deliver delay      ");
+    metrics->registerHistogram("actionExecTimeMs", "Action execute time");
     thd = std::thread(&Worker::run, this);
     spdlog::info("Worker {} created.", id);
 }
@@ -97,7 +101,7 @@ template <class Record ,class Connector>
 void Worker<Record, Connector>::exec(){
     std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     action->exec();
-    metrics->actionExecTimeMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
-    metrics->numRequests.mark();
-    metrics->numRecords.mark(action->getNumRecords());
+    metrics->getHistogram("actionExecTimeMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
+    metrics->getMeter("numRequests").mark();
+    metrics->getMeter("numRecords").mark(action->getNumRecords());
 }

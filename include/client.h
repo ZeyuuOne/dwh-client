@@ -44,7 +44,11 @@ Client<Record, Connector>::Client(Config<Connector> _config):
     if (!config.valid()){
         throw new ConfigNotValidException;
     }
-    metrics.affliatedMetrics = workerPool.getWorkerMetrics();
+    metrics.registerMeter("numRequests", "Number of requests ");
+    metrics.registerMeter("numRecords", "Number of records  ");
+    metrics.registerHistogram("deliverDelayMs", "Deliver delay      ");
+    metrics.registerHistogram("actionExecTimeMs", "Action execute time");
+    metrics.setAffliatedMetrics(workerPool.getWorkerMetrics());
     watcher = std::thread(&Client::watcherRun, this);
     status = ClientStatus::RUNNING;
     spdlog::info("DWH Client running...");
@@ -100,7 +104,7 @@ void Client<Record, Connector>::watcherRun(){
             if (!lck) continue;
             tryFlushShardCollectorIfTimeOut(**i);
         }
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - metrics.lastLoggingTime).count() >= config.metricsLoggingIntervalMs){
+        if (metrics.getWaitingTimeMs() >= config.metricsLoggingIntervalMs){
             metrics.gatherAffliatedMetrics();
             metrics.log();
             metrics.reset();
@@ -117,7 +121,7 @@ std::future<ActionResult> Client<Record, Connector>::deliver(std::vector<Record>
     action->setRecords(std::move(records));
     std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     workerPool.apply(action);
-    metrics.deliverDelayMs.update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
+    metrics.getHistogram("deliverDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     return std::move(future);
 }
 

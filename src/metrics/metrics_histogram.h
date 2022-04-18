@@ -1,8 +1,10 @@
 #pragma once
+#include "string"
 #include "mutex"
 
 class MetricsHistogram{
 public:
+    std::string displayName;
     size_t total;
     size_t count;
     size_t min;
@@ -10,12 +12,25 @@ public:
     std::mutex mtx;
 
     MetricsHistogram();
+    MetricsHistogram(const MetricsHistogram& another);
+    MetricsHistogram(std::string _displayName);
     void reset();
     void update(size_t n);
     void gather(MetricsHistogram& another);
+    void log();
 };
 
 MetricsHistogram::MetricsHistogram(){
+}
+
+MetricsHistogram::MetricsHistogram(const MetricsHistogram& another):
+    displayName(another.displayName)
+{
+}
+
+MetricsHistogram::MetricsHistogram(std::string _displayName):
+    displayName(_displayName)
+{
     reset();
 }
 
@@ -41,4 +56,10 @@ void MetricsHistogram::gather(MetricsHistogram& another){
     if (another.min < min) min = another.min;
     if (another.max > max) max = another.max;
     another.reset();
+}
+
+void MetricsHistogram::log(){
+    if (count != 0){
+        spdlog::info("{}\tAVR: {}  \tMIN: {}  \tMAX: {}  \t", displayName, total/count, min, max);
+    }
 }
