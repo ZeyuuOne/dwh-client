@@ -1,4 +1,5 @@
 #pragma once
+#define _HAS_CXX20
 #include "thread"
 #include "mutex"
 #include "condition_variable"
@@ -22,9 +23,10 @@ class Worker{
     std::thread thd;
     std::mutex mtx;
     std::condition_variable cv;
+    std::counting_semaphore<INT32_MAX>& availableWorkers;
 
 public:
-    Worker(size_t _id);
+    Worker(size_t _id, std::counting_semaphore<INT32_MAX>& _availableWorkers);
     ~Worker();
     std::shared_ptr<Metrics> getMetrics();
     void run();
@@ -33,7 +35,9 @@ public:
 };
 
 template <class Record ,class Connector>
-Worker<Record, Connector>::Worker(size_t _id){
+Worker<Record, Connector>::Worker(size_t _id, std::counting_semaphore<INT32_MAX>& _availableWorkers):
+    availableWorkers(_availableWorkers)
+{
     std::unique_lock<std::mutex> lck(mtx);
     id = _id;
     status = WorkerStatus::IDLE;
@@ -66,6 +70,7 @@ void Worker<Record, Connector>::run(){
     std::unique_lock<std::mutex> lck(mtx);
     while (status != WorkerStatus::UNAVAILABLE){
         while (status == WorkerStatus::IDLE){
+            availableWorkers.release();
             cv.wait(lck);
         }
         if (status == WorkerStatus::BUSY) {

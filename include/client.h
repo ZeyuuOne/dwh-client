@@ -32,18 +32,18 @@ private:
     void watcherRun();
     std::future<ActionResult> deliver(std::vector<Record>&& records);
     void flushShardCollectorIfReachTarget(ShardCollector<Record>& shardCollector);
-    void flushShardCollectorIfTimeOut(ShardCollector<Record>& shardCollector);
+    void tryFlushShardCollectorIfTimeOut(ShardCollector<Record>& shardCollector);
 };
 
 template <class Record ,class Connector>
 Client<Record, Connector>::Client(Config<Connector> _config):
     config(_config),
+    workerPool(WorkerPool<Record, Connector>(config.numWorkers)),
     collector(Collector<Record>(config.collectorConfig))
 {
     if (!config.valid()){
         throw new ConfigNotValidException;
     }
-    workerPool = WorkerPool<Record, Connector>(config.numWorkers);
     metrics.affliatedMetrics = workerPool.getWorkerMetrics();
     watcher = std::thread(&Client::watcherRun, this);
     status = ClientStatus::RUNNING;
@@ -98,7 +98,7 @@ void Client<Record, Connector>::watcherRun(){
             if (!(*i)->timeOut()) continue;
             std::unique_lock<std::mutex> lck((*i)->mtx, std::try_to_lock);
             if (!lck) continue;
-            flushShardCollectorIfTimeOut(**i);
+            tryFlushShardCollectorIfTimeOut(**i);
         }
         if (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - metrics.lastLoggingTime).count() >= config.metricsLoggingIntervalMs){
             metrics.gatherAffliatedMetrics();
@@ -124,6 +124,7 @@ std::future<ActionResult> Client<Record, Connector>::deliver(std::vector<Record>
 template <class Record ,class Connector>
 void Client<Record, Connector>::flushShardCollectorIfReachTarget(ShardCollector<Record>& shardCollector){
     if (!shardCollector.reachTarget()) return;
+    workerPool.availableWorkers.acquire();
     std::vector<Record> records = shardCollector.flush();
     if (shardCollector.result.valid()){
         shardCollector.result.wait();
@@ -133,11 +134,12 @@ void Client<Record, Connector>::flushShardCollectorIfReachTarget(ShardCollector<
 }
 
 template <class Record ,class Connector>
-void Client<Record, Connector>::flushShardCollectorIfTimeOut(ShardCollector<Record>& shardCollector){
+void Client<Record, Connector>::tryFlushShardCollectorIfTimeOut(ShardCollector<Record>& shardCollector){
     if (!shardCollector.timeOut()) return;
     if (shardCollector.result.valid()){
         if (shardCollector.result.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
     }
+    if (!workerPool.availableWorkers.try_acquire()) return;
     std::vector<Record> records = shardCollector.flush();
     std::future<ActionResult> result = deliver(std::move(records));
     shardCollector.result = std::move(result);

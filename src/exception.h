@@ -6,3 +6,9 @@ class ConfigNotValidException : public std::exception{
     return "Config not valid.";
   }
 };
+
+class InnerException : public std::exception{
+  const char * what () const throw (){
+    return "Inner exception.";
+  }
+};

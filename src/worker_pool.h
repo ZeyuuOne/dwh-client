@@ -1,6 +1,9 @@
 #pragma once
+#define _HAS_CXX20
 #include "vector"
 #include "worker.h"
+#include "semaphore"
+#include "exception.h"
 
 template <class Record ,class Connector>
 class WorkerPool{
@@ -8,6 +11,8 @@ class WorkerPool{
     std::vector<std::unique_ptr<Worker<Record, Connector>>> workers;
 
 public:
+    std::counting_semaphore<INT32_MAX> availableWorkers;
+
     WorkerPool();
     WorkerPool(size_t _numWorkers);
     std::vector<std::shared_ptr<Metrics>> getWorkerMetrics();
@@ -23,11 +28,12 @@ WorkerPool<Record, Connector>::WorkerPool():
 
 template <class Record ,class Connector>
 WorkerPool<Record, Connector>::WorkerPool(size_t _numWorkers):
-    numWorkers(_numWorkers)
+    numWorkers(_numWorkers),
+    availableWorkers(std::counting_semaphore<INT32_MAX>(0))
 {
     workers.resize(numWorkers);
     for (size_t i = 0; i < numWorkers; i++){
-        workers[i] = std::unique_ptr<Worker<Record, Connector>>(new Worker<Record, Connector>(i));
+        workers[i] = std::unique_ptr<Worker<Record, Connector>>(new Worker<Record, Connector>(i, availableWorkers));
     }
 }
 
@@ -42,7 +48,9 @@ std::vector<std::shared_ptr<Metrics>> WorkerPool<Record, Connector>::getWorkerMe
 
 template <class Record ,class Connector>
 void WorkerPool<Record, Connector>::apply(std::shared_ptr<Action<Record, Connector>> action){
-    while (!tryApply(action)) {
+    if (!tryApply(action)) {
+        // This thread should have already acquired the semaphore. There should be available worker.
+        throw new InnerException;
     }
 }
 
