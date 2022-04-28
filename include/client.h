@@ -25,7 +25,7 @@ class Client{
 public:
     Client(Config<Connector> config);
     ~Client();
-    void put(Record& record);
+    void put(Record record);
     void flush();
 
 private:
@@ -76,10 +76,10 @@ Client<Record, Connector>::~Client(){
 }
 
 template <class Record ,class Connector>
-void Client<Record, Connector>::put(Record& record){
+void Client<Record, Connector>::put(Record record){
     ShardCollector<Record>& shardCollector = collector.match(record);
     std::unique_lock<std::mutex> lck(shardCollector.mtx);
-    shardCollector.apply(record);
+    shardCollector.apply(std::move(record));
     flushShardCollectorIfReachTarget(shardCollector);
 }
 

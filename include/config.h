@@ -5,6 +5,7 @@
 class CollectorConfig{
 public:
     int32_t targetNumRecords;
+    int32_t targetMemorySize;
     int32_t maxWaitingTimeMs;
 
     CollectorConfig();
@@ -26,6 +27,7 @@ public:
 
 CollectorConfig::CollectorConfig():
     targetNumRecords(1),
+    targetMemorySize(1024),
     maxWaitingTimeMs(1000)
 {
 }
@@ -34,6 +36,10 @@ bool CollectorConfig::valid(){
     bool valid = true;
     if (targetNumRecords <= 0) {
         spdlog::error("Target number of records in config should be positive, which is currently {}.", targetNumRecords);
+        valid = false;
+    }
+    if (targetMemorySize <= 0) {
+        spdlog::error("Target memory size in config should be positive, which is currently {}.", targetNumRecords);
         valid = false;
     }
     if (maxWaitingTimeMs <= 0) {

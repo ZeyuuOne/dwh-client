@@ -10,6 +10,7 @@ Config<DorisConnector<DorisRecord>> getConfig(){
     config.metricsLoggingIntervalMs = 3000;
 
     config.collectorConfig.targetNumRecords = 10;
+    config.collectorConfig.targetMemorySize = 1024;
     config.collectorConfig.maxWaitingTimeMs = 2000;
 
     config.connector.ip = "172.17.0.3";
