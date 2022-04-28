@@ -6,37 +6,40 @@
 #include "collector/table_collector.h"
 #include "collector/shard_collector.h"
 
-template <class Record>
+template <class Record, class Connector>
 class Collector{
     CollectorConfig& collectorConfig;
+    Connector& connector;
     std::unordered_map<std::string, TableCollector<Record>> tableCollectors;
     std::unordered_set<std::shared_ptr<ShardCollector<Record>>> shardCollectors;
     
 public:
-    Collector(CollectorConfig& _collectorConfig);
+    Collector(CollectorConfig& _collectorConfig, Connector& _connector);
     ShardCollector<Record>& match(Record& record);
     std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& getShardCollectors();
 };
 
-template <class Record>
-Collector<Record>::Collector(CollectorConfig& _collectorConfig):
-    collectorConfig(_collectorConfig)
+template <class Record, class Connector>
+Collector<Record, Connector>::Collector(CollectorConfig& _collectorConfig, Connector& _connector):
+    collectorConfig(_collectorConfig),
+    connector(_connector)
 {
 }
 
-template <class Record>
-ShardCollector<Record>& Collector<Record>::match(Record& record){
-    if (tableCollectors.find(record.getTableIdentifier()) == tableCollectors.end()) {
-        tableCollectors.insert({record.getTableIdentifier(), TableCollector<Record>(record.numShards, collectorConfig)});
-        std::vector<std::shared_ptr<ShardCollector<Record>>>& shardCollectorsInTable = tableCollectors[record.getTableIdentifier()].getShardCollectors();
-        for (size_t i = 0; i < shardCollectorsInTable.size();i++){
-            shardCollectors.insert(shardCollectorsInTable[i]);
+template <class Record, class Connector>
+ShardCollector<Record>& Collector<Record, Connector>::match(Record& record){
+    std::string tableIdentifier = record.getTableIdentifier();
+    if (tableCollectors.find(tableIdentifier) == tableCollectors.end()) {
+        tableCollectors.insert({tableIdentifier, TableCollector<Record>(connector.getNumShards(tableIdentifier), collectorConfig)});
+        std::vector<std::shared_ptr<ShardCollector<Record>>>& shardCollectorsInTable = tableCollectors[tableIdentifier].getShardCollectors();
+        for (auto i = shardCollectorsInTable.begin(); i != shardCollectorsInTable.end();i++){
+            shardCollectors.insert(*i);
         }
     }
-    return tableCollectors[record.getTableIdentifier()].match(record);
+    return tableCollectors[std::move(tableIdentifier)].match(record);
 }
 
-template <class Record>
-std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& Collector<Record>::getShardCollectors(){
+template <class Record, class Connector>
+std::unordered_set<std::shared_ptr<ShardCollector<Record>>>& Collector<Record, Connector>::getShardCollectors(){
     return shardCollectors;
 }

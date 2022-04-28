@@ -1,6 +1,8 @@
 #include "client.h"
 #include "doris_record.h"
 #include "doris_connector.h"
+#include "string"
+#include "iostream"
 
 Config<DorisConnector<DorisRecord>> getConfig(){
     Config<DorisConnector<DorisRecord>> config;
@@ -16,7 +18,8 @@ Config<DorisConnector<DorisRecord>> getConfig(){
 int main(){
     Client<DorisRecord, DorisConnector<DorisRecord>> client(getConfig());
 
-    client.exec("test", "truncate table test;");
+    std::string ret = client.exec("test", "truncate table test;");
+    std::cout << ret << std::endl;
     
     return 0;
 }

@@ -18,7 +18,7 @@ class Client{
     ClientStatus status;
     Config<Connector> config;
     WorkerPool<Record, Connector> workerPool;
-    Collector<Record> collector;
+    Collector<Record, Connector> collector;
     Metrics metrics;
     std::thread watcher;
 
@@ -27,7 +27,7 @@ public:
     ~Client();
     void put(Record record);
     void flush();
-    void exec(const std::string& database, const std::string& statement);
+    std::string exec(const std::string& database, const std::string& statement);
 
 private:
     void watcherRun();
@@ -40,7 +40,7 @@ template <class Record ,class Connector>
 Client<Record, Connector>::Client(Config<Connector> _config):
     config(_config),
     workerPool(WorkerPool<Record, Connector>(config.numWorkers)),
-    collector(Collector<Record>(config.collectorConfig))
+    collector(Collector<Record, Connector>(config.collectorConfig, config.connector))
 {
     if (!config.valid()){
         throw new ConfigNotValidException;
@@ -104,8 +104,8 @@ void Client<Record, Connector>::flush(){
 }
 
 template <class Record ,class Connector>
-void Client<Record, Connector>::exec(const std::string& database, const std::string& statement){
-    config.connector.exec(database, statement);
+std::string Client<Record, Connector>::exec(const std::string& database, const std::string& statement){
+    return std::move(config.connector.exec(database, statement));
 }
 
 template <class Record ,class Connector>

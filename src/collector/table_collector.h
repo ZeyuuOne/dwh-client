@@ -16,7 +16,6 @@ public:
     ShardCollector<Record>& match(Record& record);
 };
 
-
 template <class Record>
 TableCollector<Record>::TableCollector():
     numShards(0)

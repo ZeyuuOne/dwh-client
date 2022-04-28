@@ -50,6 +50,7 @@ template <class Record ,class Connector>
 void WorkerPool<Record, Connector>::apply(std::shared_ptr<Action<Record, Connector>> action){
     if (!tryApply(action)) {
         // This thread should have already acquired the semaphore. There should be available worker.
+        spdlog::error("Inner Exception: Cannot find available worker.");
         throw new InnerException;
     }
 }

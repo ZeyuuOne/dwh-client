@@ -35,7 +35,6 @@ int main(){
         for (size_t j = 0; j < 6; j++){
             record.values.push_back(value);
         }
-        record.numShards = 10;
         client.put(record);
     }
 
@@ -50,7 +49,6 @@ int main(){
         for (size_t j = 0; j < 6; j++){
             record.values.push_back(value);
         }
-        record.numShards = 10;
         client.put(record);
         std::this_thread::sleep_for(std::chrono::milliseconds(2500));
     }

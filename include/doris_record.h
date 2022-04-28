@@ -7,7 +7,6 @@ public:
     std::string database;
     std::string table;
     std::vector<std::string> values;
-    size_t numShards;  // TODO: Should be get from the table schema.
 
     std::string getTableIdentifier();
     size_t hash(size_t upperBound);
@@ -17,7 +16,7 @@ public:
 std::string DorisRecord::getTableIdentifier(){
     std::string tableIdentifier(database);
     tableIdentifier.reserve(database.length() + table.length() + 2);
-    tableIdentifier += '.';
+    tableIdentifier += '\n';
     tableIdentifier += table;
     return std::move(tableIdentifier);
 }
