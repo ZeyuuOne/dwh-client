@@ -34,15 +34,15 @@ CollectorConfig::CollectorConfig():
 
 bool CollectorConfig::valid(){
     bool valid = true;
-    if (targetNumRecords <= 0) {
+    if (targetNumRecords <= 0){
         spdlog::error("Target number of records in config should be positive, which is currently {}.", targetNumRecords);
         valid = false;
     }
-    if (targetMemorySize <= 0) {
+    if (targetMemorySize <= 0){
         spdlog::error("Target memory size in config should be positive, which is currently {}.", targetNumRecords);
         valid = false;
     }
-    if (maxWaitingTimeMs <= 0) {
+    if (maxWaitingTimeMs <= 0){
         spdlog::error("Maximum waiting time in config should be positive, which is currently {}.", targetNumRecords);
         valid = false;
     }
@@ -60,19 +60,22 @@ Config<Connector>::Config():
 template<class Connector>
 bool Config<Connector>::valid(){
     bool valid = true;
-    if (numWorkers <= 0) {
+    if (numWorkers <= 0){
         spdlog::error("Number of workers in config should be positive, which is currently {}.", numWorkers);
         valid = false;
     }
-    if (watcherWakeUpIntervalMs <= 0) {
+    if (watcherWakeUpIntervalMs <= 0){
         spdlog::error("Watcher wake up interval in config should be positive, which is currently {}.", numWorkers);
         valid = false;
     }
-    if (metricsLoggingIntervalMs <= 0) {
+    if (metricsLoggingIntervalMs <= 0){
         spdlog::error("Metrics logging interval in config should be positive, which is currently {}.", metricsLoggingIntervalMs);
         valid = false;
     }
-    if (!collectorConfig.valid()) {
+    if (!collectorConfig.valid()){
+        valid = false;
+    }
+    if (!connector.valid()){
         valid = false;
     }
     return valid;

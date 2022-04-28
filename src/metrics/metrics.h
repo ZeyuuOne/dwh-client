@@ -18,10 +18,10 @@ private:
 public:
     Metrics();
     void reset();
-    void registerMeter(std::string name, std::string displayName);
-    void registerHistogram(std::string name, std::string displayName);
-    MetricsMeter& getMeter(std::string name);
-    MetricsHistogram& getHistogram(std::string name);
+    void registerMeter(const std::string& name, const std::string& displayName);
+    void registerHistogram(const std::string& name, const std::string& displayName);
+    MetricsMeter& getMeter(const std::string& name);
+    MetricsHistogram& getHistogram(const std::string& name);
     void setAffliatedMetrics(std::vector<std::shared_ptr<Metrics>> _affliatedMetrics);
     size_t getWaitingTimeMs();
     void gather(Metrics& another);
@@ -44,19 +44,19 @@ void Metrics::reset(){
     lastLoggingTime = lastResetTime;
 }
 
-void Metrics::registerMeter(std::string name, std::string displayName){
+void Metrics::registerMeter(const std::string& name, const std::string& displayName){
     meters.insert({name, MetricsMeter(displayName)});
 }
 
-void Metrics::registerHistogram(std::string name, std::string displayName){
+void Metrics::registerHistogram(const std::string& name, const std::string& displayName){
     histograms.insert({name, MetricsHistogram(displayName)});
 }
  
-MetricsMeter& Metrics::getMeter(std::string name){
+MetricsMeter& Metrics::getMeter(const std::string& name){
     return meters[name];
 }
 
-MetricsHistogram& Metrics::getHistogram(std::string name){
+MetricsHistogram& Metrics::getHistogram(const std::string& name){
     return histograms[name];
 }
 

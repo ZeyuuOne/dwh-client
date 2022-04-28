@@ -13,11 +13,35 @@ public:
     std::string user;
     std::string password;
 
-    void exec(std::vector<Record> records);
+    bool valid();
+    void write(std::vector<Record> records);
+    void exec(const std::string& database, const std::string& statement);
 };
 
 template<class Record>
-void DorisConnector<Record>::exec(std::vector<Record> records){
+bool DorisConnector<Record>::valid(){
+    bool valid = true;
+    if (ip.empty()){
+        spdlog::error("IP in connector config is empty.");
+        valid = false;
+    }
+    if (port.empty()){
+        spdlog::error("Port in connector config is empty.");
+        valid = false;
+    }
+    if (user.empty()){
+        spdlog::error("User in connector config is empty.");
+        valid = false;
+    }
+    if (password.empty()){
+        spdlog::error("Password in connector config is empty.");
+        valid = false;
+    }
+    return valid;
+}
+
+template<class Record>
+void DorisConnector<Record>::write(std::vector<Record> records){
     if (records.empty()) return;
 
     std::string& database = records[0].database;
@@ -52,3 +76,25 @@ void DorisConnector<Record>::exec(std::vector<Record> records){
         spdlog::error(response.text);
     }
 }
+
+template<class Record>
+void DorisConnector<Record>::exec(const std::string& database, const std::string& statement){
+    std::string body("{\"stmt\":\"" + statement + "\"}");
+    std::string url("http://" + ip + ":" + port + "/api/query/default_cluster/" + database);
+
+    cpr::Response response = cpr::Post(cpr::Url{url},
+        cpr::Body{body},
+        cpr::Authentication{user, password},
+        cpr::Redirect{-1,true,true,cpr::PostRedirectFlags::POST_ALL},
+        cpr::Header{
+            {"content-type", "application/json"},
+            {"expect", "100-continue"}
+        }
+    );
+
+    auto json = nlohmann::json::parse(response.text);
+    if (json["msg"] != "success"){
+        spdlog::error(response.text);
+    }
+}
+    

@@ -27,6 +27,7 @@ public:
     ~Client();
     void put(Record record);
     void flush();
+    void exec(const std::string& database, const std::string& statement);
 
 private:
     void watcherRun();
@@ -100,6 +101,11 @@ void Client<Record, Connector>::flush(){
         std::future<ActionResult> result = deliver(std::move(records));
         (*i)->result = std::move(result);
     }
+}
+
+template <class Record ,class Connector>
+void Client<Record, Connector>::exec(const std::string& database, const std::string& statement){
+    config.connector.exec(database, statement);
 }
 
 template <class Record ,class Connector>

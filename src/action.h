@@ -44,6 +44,6 @@ void Action<Record, Connector>::setRecords(std::vector<Record>&& _records){
 
 template <class Record ,class Connector>
 void Action<Record, Connector>::exec(){
-    connector.exec(records);
+    connector.write(records);
     result.set_value(ActionResult::SUCCESS);
 }

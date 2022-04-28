@@ -48,7 +48,7 @@ Worker<Record, Connector>::Worker(size_t _id, std::counting_semaphore<INT32_MAX>
     metrics->registerMeter("numRequests", "Number of requests ");
     metrics->registerMeter("numRecords", "Number of records  ");
     metrics->registerMeter("numTimeouts", "Number of timeouts ");
-    metrics->registerHistogram("deliverDelayMs", "Deliver delay      ");
+    metrics->registerHistogram("actionApplyDelayMs", "Deliver delay      ");
     metrics->registerHistogram("actionExecTimeMs", "Action execute time");
     metrics->registerHistogram("workerIdleTimeMs", "Worker idle time   ");
     metrics->registerHistogram("acquireSemaphoreDelayMs", "Wait 4 worker delay");

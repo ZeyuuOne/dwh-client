@@ -24,6 +24,8 @@ Config<DorisConnector<DorisRecord>> getConfig(){
 int main(){
     Client<DorisRecord, DorisConnector<DorisRecord>> client(getConfig());
 
+    client.exec("test", "truncate table test;");
+
     for (size_t i = 0; i < 100; i++){
         DorisRecord record;
         record.database = "test";
