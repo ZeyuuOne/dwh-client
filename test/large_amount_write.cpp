@@ -5,11 +5,11 @@
 Config<DorisConnector<DorisRecord>> getConfig(){
     Config<DorisConnector<DorisRecord>> config;
 
-    config.numWorkers = 4;
+    config.numWorkers = 1;
     config.watcherWakeUpIntervalMs = 20000;
     config.metricsLoggingIntervalMs = 40000;
 
-    config.collectorConfig.targetNumRecords = 1000000;
+    config.collectorConfig.targetNumRecords = 5000000;
     config.collectorConfig.maxWaitingTimeMs = 1000000;
 
     config.connector.ip = "172.17.0.3";
@@ -23,15 +23,16 @@ Config<DorisConnector<DorisRecord>> getConfig(){
 int main(){
     Client<DorisRecord, DorisConnector<DorisRecord>> client(getConfig());
 
-    for (int i = 0;i < 200000000;i++){
+    for (size_t i = 0; i < 40000000; i++){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
         record.values.reserve(6);
+        std::string value(std::to_string(i));
         for (int j = 0; j < 6; j++){
-            record.values.push_back(std::to_string(i));
+            record.values.push_back(value);
         }
-        record.numShards = 4;
+        record.numShards = 1;
         client.put(record);
     }
 

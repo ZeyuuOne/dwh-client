@@ -89,9 +89,14 @@ void Client<Record, Connector>::flush(){
     for (auto i = shardCollectors.begin(); i != shardCollectors.end(); i++){
         std::vector<Record> records = (*i)->flush();
         if (records.empty()) continue;
+        std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
         if ((*i)->result.valid()){
             (*i)->result.wait();
         }
+        metrics.getHistogram("waitForFutureDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
+        startTime = std::chrono::steady_clock::now();
+        workerPool.availableWorkers.acquire();
+        metrics.getHistogram("acquireSemaphoreDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
         std::future<ActionResult> result = deliver(std::move(records));
         (*i)->result = std::move(result);
     }
@@ -132,15 +137,15 @@ std::future<ActionResult> Client<Record, Connector>::deliver(std::vector<Record>
 template <class Record ,class Connector>
 void Client<Record, Connector>::flushShardCollectorIfReachTarget(ShardCollector<Record>& shardCollector){
     if (!shardCollector.reachTarget()) return;
-    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
-    workerPool.availableWorkers.acquire();
-    metrics.getHistogram("acquireSemaphoreDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     std::vector<Record> records = shardCollector.flush();
-    startTime = std::chrono::steady_clock::now();
+    std::chrono::steady_clock::time_point startTime = std::chrono::steady_clock::now();
     if (shardCollector.result.valid()){
         shardCollector.result.wait();
     }
     metrics.getHistogram("waitForFutureDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
+    startTime = std::chrono::steady_clock::now();
+    workerPool.availableWorkers.acquire();
+    metrics.getHistogram("acquireSemaphoreDelayMs").update(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - startTime).count());
     std::future<ActionResult> result = deliver(std::move(records));
     shardCollector.result = std::move(result);
 }

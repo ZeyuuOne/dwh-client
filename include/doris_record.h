@@ -14,7 +14,11 @@ public:
 };
 
 std::string DorisRecord::getTableIdentifier(){
-    return table;
+    std::string tableIdentifier(database);
+    tableIdentifier.reserve(database.length() + table.length() + 2);
+    tableIdentifier += '.';
+    tableIdentifier += table;
+    return std::move(tableIdentifier);
 }
 
 size_t DorisRecord::hash(size_t upperBound){

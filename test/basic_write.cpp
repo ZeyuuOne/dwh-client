@@ -23,13 +23,14 @@ Config<DorisConnector<DorisRecord>> getConfig(){
 int main(){
     Client<DorisRecord, DorisConnector<DorisRecord>> client(getConfig());
 
-    for (int i = 0;i < 100;i++){
+    for (size_t i = 0; i < 100; i++){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
         record.values.reserve(6);
-        for (int j = 0; j < 6; j++){
-            record.values.push_back(std::to_string(i));
+        std::string value(std::to_string(i));
+        for (size_t j = 0; j < 6; j++){
+            record.values.push_back(value);
         }
         record.numShards = 10;
         client.put(record);
@@ -37,13 +38,14 @@ int main(){
 
     std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
-    for (int i = 100; i < 104; i++){
+    for (size_t i = 100; i < 104; i++){
         DorisRecord record;
         record.database = "test";
         record.table = "test";
         record.values.reserve(6);
-        for (int j = 0; j < 6; j++){
-            record.values.push_back(std::to_string(i));
+        std::string value(std::to_string(i));
+        for (size_t j = 0; j < 6; j++){
+            record.values.push_back(value);
         }
         record.numShards = 10;
         client.put(record);
