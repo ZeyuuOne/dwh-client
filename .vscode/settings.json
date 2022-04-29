@@ -81,7 +81,8 @@
         "filesystem": "cpp",
         "valarray": "cpp",
         "unordered_set": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "regex": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

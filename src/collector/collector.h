@@ -3,6 +3,8 @@
 #include "unordered_map"
 #include "unordered_set"
 #include "vector"
+#include "algorithm"
+#include "cmath"
 #include "collector/table_collector.h"
 #include "collector/shard_collector.h"
 
@@ -30,7 +32,9 @@ template <class Record, class Connector>
 ShardCollector<Record>& Collector<Record, Connector>::match(Record& record){
     std::string tableIdentifier = record.getTableIdentifier();
     if (tableCollectors.find(tableIdentifier) == tableCollectors.end()) {
-        tableCollectors.insert({tableIdentifier, TableCollector<Record>(connector.getNumShards(tableIdentifier), collectorConfig)});
+        size_t tableNumShards = connector.getNumShards(tableIdentifier);
+        size_t numShards = std::max(std::ceil(collectorConfig.numShardsFactor * tableNumShards), std::ceil((double)collectorConfig.minNumShards / tableNumShards) * tableNumShards);
+        tableCollectors.insert({tableIdentifier, TableCollector<Record>(numShards, collectorConfig)});
         std::vector<std::shared_ptr<ShardCollector<Record>>>& shardCollectorsInTable = tableCollectors[tableIdentifier].getShardCollectors();
         for (auto i = shardCollectorsInTable.begin(); i != shardCollectorsInTable.end();i++){
             shardCollectors.insert(*i);

@@ -9,6 +9,8 @@ Config<DorisConnector<DorisRecord>> getConfig(){
     config.watcherWakeUpIntervalMs = 20000;
     config.metricsLoggingIntervalMs = 40000;
 
+    config.collectorConfig.numShardsFactor = 2;
+    config.collectorConfig.minNumShards = 0;
     config.collectorConfig.targetNumRecords = 5000000;
     config.collectorConfig.targetMemorySize = 100 * 1024 * 1024;
     config.collectorConfig.maxWaitingTimeMs = 1000000;
